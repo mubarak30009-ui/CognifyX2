@@ -1,0 +1,1818 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C3/C2 - مركز القيادة والتحكم المتقدم (Glassmorphism Theme)</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        /* ----------------------- */
+        /* 1. المتغيرات والألوان (Neon Palette) */
+        /* ----------------------- */
+        :root {
+            --primary-color: #00bcd4; /* أزرق سماوي نيون */
+            --secondary-color: #ff9800; /* برتقالي ساطع */
+            --background-dark: #12121e; /* خلفية داكنة جداً (OLED) */
+            --surface-dark: rgba(35, 38, 56, 0.75); /* خلفية العناصر (Glassmorphism) */
+            --text-light: #e0f7fa; /* نص فاتح جداً */
+            --text-muted: #80deea; /* نص باهت (نيون خفيف) */
+            --alert-high: #ff4757; /* أحمر للخطر */
+            --alert-medium: #ffda79; /* أصفر للتنبيه */
+            --alert-low: #32ff7e; /* أخضر للآمن */
+            --sidebar-width: 320px;
+            --header-height: 70px;
+            --font-family: 'Cairo', sans-serif, Arial; 
+            --glass-blur: blur(8px);
+            --glass-border: 1px solid rgba(0, 188, 212, 0.2);
+            --shadow-primary: 0 0 10px rgba(0, 188, 212, 0.5); /* ظل نيون خفيف */
+        }
+
+        /* ----------------------- */
+        /* 2. الإعدادات العامة والتخطيط */
+        /* ----------------------- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+        }
+
+        body, html {
+            background-color: var(--background-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-y: auto; 
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-areas:
+                "header header header"
+                "sidebar-left main-content sidebar-right";
+            grid-template-rows: var(--header-height) 1fr;
+            grid-template-columns: var(--sidebar-width) 1fr var(--sidebar-width);
+            height: auto;
+            min-height: 100vh;
+            gap: 12px;
+            padding: 12px;
+            transition: box-shadow 0.5s ease-in-out;
+        }
+        
+        /* تأثير النبض للخطر العالي */
+        .ambient-high {
+            box-shadow: 0 0 20px 5px var(--alert-high) !important;
+            border-color: var(--alert-high) !important;
+        }
+
+        /* ----------------------- */
+        /* 3. عناصر الرأس والجوانب (Glassmorphism Styling) */
+        /* ----------------------- */
+        header {
+            grid-area: header;
+            background-color: var(--surface-dark);
+            backdrop-filter: var(--glass-blur);
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 12px;
+            border: var(--glass-border);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .header-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-shadow: 0 0 5px var(--primary-color);
+        }
+
+        .status-indicators span {
+            margin-right: 20px;
+            font-size: 1em;
+            color: var(--text-muted);
+        }
+        
+        /* التذييل البصري للعناصر الجانبية */
+        aside {
+            background-color: var(--surface-dark);
+            backdrop-filter: var(--glass-blur);
+            padding: 20px;
+            border-radius: 12px;
+            overflow-y: auto; 
+            border: var(--glass-border);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            height: 100%; 
+        }
+
+        .sidebar-left { grid-area: sidebar-left; }
+        .sidebar-right { grid-area: sidebar-right; }
+
+        .sidebar-section {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-section h4 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-right: 4px solid var(--secondary-color);
+            padding-right: 10px;
+            text-shadow: 0 0 3px rgba(255, 152, 0, 0.5);
+        }
+
+        /* ----------------------- */
+        /* 4. الإحصائيات (Metrics) */
+        /* ----------------------- */
+        .metric-card-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .metric-card {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid var(--secondary-color);
+            transition: all 0.3s;
+        }
+        
+        .metric-card:hover {
+            background-color: rgba(0, 0, 0, 0.5);
+            transform: translateY(-3px);
+        }
+
+        .metric-card .value {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-shadow: 0 0 8px var(--primary-color);
+            display: block;
+        }
+
+        .metric-card .label {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        /* تخصيص الألوان للمقاييس */
+        #total-alerts-card { border-left-color: var(--alert-high); }
+        #active-alerts-card { border-left-color: var(--alert-high); }
+        #avg-confidence-card { border-left-color: var(--alert-low); }
+        #top-threat-card { border-left-color: var(--secondary-color); }
+
+
+        /* ----------------------- */
+        /* 5. المحتوى الرئيسي والخريطة */
+        /* ----------------------- */
+        .main-content {
+            grid-area: main-content;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto; 
+            padding-right: 1px;
+        }
+
+        #map {
+            height: 600px; 
+            background-color: #333;
+            border-radius: 12px;
+            border: var(--glass-border);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            z-index: 0;
+            flex-shrink: 0;
+        }
+        
+        /* تنسيق مؤشرات البلاغات - لضمان الظهور */
+        .alert-marker {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            transition: all 0.2s;
+            transform: translate(-50%, -50%); 
+        }
+        
+        .alert-marker-high {
+            background-color: var(--alert-high);
+            box-shadow: 0 0 15px var(--alert-high);
+        }
+        
+        .alert-marker-medium {
+            background-color: var(--alert-medium);
+            box-shadow: 0 0 10px var(--alert-medium);
+        }
+        
+        .alert-marker-low {
+            background-color: var(--alert-low);
+            box-shadow: 0 0 5px var(--alert-low);
+        }
+
+        /* لون المسار الحرج */
+        .leaflet-pane.leaflet-overlay-pane path.leaflet-interactive[stroke="#ff4757"] {
+            stroke-dasharray: 10, 5;
+        }
+        
+        /* تنسيق أيقونة الوحدة المتحركة */
+        .custom-unit-marker i {
+            animation: pulse-unit 2s infinite; 
+        }
+
+        @keyframes pulse-unit {
+            0% { transform: scale(1.0); opacity: 1.0; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1.0); opacity: 1.0; }
+        }
+
+
+        /* ----------------------- */
+        /* 6. الجداول والتنبيهات */
+        /* ----------------------- */
+        .alerts-panel {
+            background-color: var(--surface-dark);
+            backdrop-filter: var(--glass-blur);
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: var(--glass-border);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .alerts-panel h4 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-right: 4px solid var(--secondary-color);
+            padding-right: 10px;
+            text-shadow: 0 0 3px rgba(255, 152, 0, 0.5);
+        }
+
+        .alerts-table, .log-container table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        .alerts-table thead th, .log-container thead th {
+            text-align: right;
+            color: var(--secondary-color);
+            padding: 10px 0;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        .alerts-table tbody tr, .log-container tbody tr {
+            border-bottom: 1px dotted rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .alerts-table tbody tr:hover, .log-container tbody tr:hover {
+            background-color: rgba(0, 188, 212, 0.1);
+        }
+        
+        .alerts-table td, .log-container td {
+            padding: 10px 0;
+        }
+
+        /* تخصيص صف التنبيه الجديد (وميض) */
+        .ambient-high {
+            background-color: rgba(255, 71, 87, 0.2) !important;
+            border: 1px solid var(--alert-high);
+        }
+
+
+        .alert-type-tag {
+            padding: 4px 10px;
+            border-radius: 15px; 
+            font-size: 0.8em;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            min-width: 70px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .alert-type-tag.high { background-color: var(--alert-high); color: var(--text-light); box-shadow: 0 0 5px var(--alert-high); }
+        .alert-type-tag.medium { background-color: var(--alert-medium); color: var(--background-dark); box-shadow: 0 0 5px var(--alert-medium); }
+        .alert-type-tag.low { background-color: var(--alert-low); color: var(--background-dark); box-shadow: 0 0 5px var(--alert-low); }
+
+        .license-plate {
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+        
+        .log-container {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        /* ----------------------- */
+        /* 7. الأزرار والتفاعل */
+        /* ----------------------- */
+        .action-button {
+            border: none;
+            color: var(--text-light);
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .primary-btn { background-color: var(--primary-color); }
+        .primary-btn:hover { background-color: #008c9e; box-shadow: 0 0 15px var(--primary-color); }
+        .danger-action { background-color: var(--alert-high); }
+        .danger-action:hover { background-color: #cc3945; box-shadow: 0 0 15px var(--alert-high); }
+        .medium-action { background-color: var(--alert-medium); color: var(--background-dark); }
+        .medium-action:hover { background-color: #ffc44d; color: var(--background-dark); box-shadow: 0 0 15px var(--alert-medium); }
+        
+        .full-width-btn {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        /* ----------------------- */
+        /* 8. شريط السياق (AI Copilot) - تحديث للVideo Feed */
+        /* ----------------------- */
+        .visual-context-panel {
+            display: flex; 
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 12px; 
+        }
+        
+        /* حاوية البث المباشر وأزرار التحكم */
+        .video-feed-container {
+            position: relative;
+            background-color: var(--background-dark);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 0 15px var(--primary-color);
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            height: 300px; /* ارتفاع ثابت لعرض الفيديو */
+        }
+        
+        .live-feed-viewer {
+            grid-column: 1 / span 1;
+            position: relative;
+            background-color: #000;
+        }
+        
+        /* تنسيق الفيديو (بدلاً من الصورة) */
+        #live-video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.3s ease-in-out;
+            transform: scale(1); /* إعادة تعيين التحويل */
+        }
+        
+        .feed-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            color: var(--alert-low);
+            padding: 10px;
+            font-weight: bold;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0));
+            font-size: 0.8em;
+            display: flex;
+            justify-content: space-between;
+            z-index: 10; /* فوق الفيديو */
+        }
+
+        /* زر التشغيل والإيقاف المؤقت */
+        .video-controls-overlay {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 10;
+        }
+        
+        .video-controls-overlay button {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .video-controls-overlay button:hover {
+            background-color: var(--primary-color);
+            color: var(--background-dark);
+        }
+
+
+        .ptz-controls {
+            grid-column: 2 / span 1;
+            background-color: rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .ptz-label {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .ptz-buttons {
+            display: grid;
+            grid-template-areas: 
+                ". up ."
+                "left center right"
+                ". down .";
+            gap: 5px;
+            width: 100%;
+            max-width: 120px;
+        }
+        
+        .ptz-buttons button {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background-color: var(--surface-dark);
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            transition: background-color 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .ptz-buttons button:hover {
+            background-color: var(--primary-color);
+            color: var(--background-dark);
+            box-shadow: 0 0 10px var(--primary-color);
+        }
+
+        .ptz-buttons .ptz-up { grid-area: up; }
+        .ptz-buttons .ptz-down { grid-area: down; }
+        .ptz-buttons .ptz-left { grid-area: left; }
+        .ptz-buttons .ptz-right { grid-area: right; }
+        .ptz-buttons .ptz-center { grid-area: center; background-color: var(--alert-low); color: var(--background-dark); }
+        .ptz-buttons .ptz-center:hover { background-color: var(--alert-low); box-shadow: 0 0 10px var(--alert-low); }
+
+        .zoom-controls {
+            display: flex;
+            flex-direction: column;
+            margin-top: 15px;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .zoom-controls button {
+            background-color: var(--alert-medium);
+            color: var(--background-dark);
+            font-weight: bold;
+            width: 90px;
+            height: 30px;
+            border-radius: 6px;
+        }
+
+        .context-cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .copilot-panel {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+
+        .copilot-analysis {
+            border-right: 4px solid var(--alert-low);
+            color: var(--text-light);
+        }
+        
+        .copilot-analysis strong { color: var(--alert-low); }
+        
+        .copilot-action {
+            border-right: 4px solid var(--alert-high);
+            color: var(--alert-high);
+        }
+        
+        .copilot-action strong { color: var(--alert-high); }
+        
+        .task-list-container {
+            min-height: 100px;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border-right: 4px solid var(--secondary-color);
+        }
+        
+        .incident-task-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .incident-task-list li {
+            padding: 8px 0;
+            border-bottom: 1px dotted rgba(255, 255, 255, 0.05);
+            font-size: 0.9em;
+            color: var(--text-muted);
+        }
+        
+        .danger { 
+            color: var(--alert-high); 
+            font-weight: bold; 
+            text-shadow: 0 0 5px var(--alert-high);
+        }
+
+        /* تنسيق بيانات أبشر الجديدة */
+        .absher-data-card {
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            grid-template-rows: auto auto 1fr;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .absher-owner-img {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            grid-row: 1 / span 2;
+            border: 3px solid var(--primary-color);
+            box-shadow: 0 0 10px var(--primary-color);
+        }
+
+        .absher-data-card h5 {
+            color: var(--primary-color);
+            margin-bottom: 0px;
+            display: flex;
+            align-items: center;
+            grid-column: 2;
+        }
+        
+        .absher-details {
+            grid-column: 2;
+        }
+
+        .absher-data-card p {
+            margin: 5px 0;
+            color: var(--text-light);
+            line-height: 1.4;
+        }
+
+        .absher-data-card strong {
+            color: var(--secondary-color);
+        }
+
+        .status-ok { color: var(--alert-low); font-weight: bold; }
+        .status-violation { color: var(--alert-high); font-weight: bold; }
+        .status-pending { color: var(--alert-medium); font-weight: bold; }
+
+        /* تنسيق مؤشر الخطر الأمني (Security Risk Meter) */
+        .risk-meter-container {
+            grid-column: 1 / -1; 
+            padding-top: 5px;
+        }
+        
+        .risk-meter-label {
+            font-size: 1em;
+            font-weight: bold;
+            color: var(--text-light);
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .risk-bar {
+            background-color: rgba(255, 255, 255, 0.1);
+            height: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .risk-level {
+            height: 100%;
+            transition: width 1s ease-out, background-color 1s ease-out;
+            border-radius: 8px;
+        }
+        
+        /* سجل البحث المُسبق */
+        .pre-search-log {
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 8px;
+            border-right: 4px solid var(--secondary-color);
+            font-size: 0.85em;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .pre-search-log ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .pre-search-log li {
+            padding: 5px 0;
+            border-bottom: 1px dotted rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+        
+        .pre-search-log strong {
+            color: var(--primary-color);
+        }
+
+        /* ----------------------- */
+        /* 9. شريط التنبيهات المنبثقة (Toast) */
+        /* ----------------------- */
+        #toast-container {
+            position: fixed;
+            top: 85px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background-color: rgba(35, 38, 56, 0.95);
+            backdrop-filter: blur(5px);
+            color: var(--text-light);
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transform: translateX(-150%);
+            transition: opacity 0.5s, transform 0.5s;
+            font-size: 0.9em;
+            border-right: 6px solid;
+            min-width: 250px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast-high { border-right-color: var(--alert-high); }
+        .toast-medium { border-right-color: var(--alert-medium); }
+        .toast-low { border-right-color: var(--alert-low); }
+
+        /* ----------------------- */
+        /* 10. عناصر النماذج والتحكم الآلي (للتناسق) */
+        /* ----------------------- */
+        .automation-controls {
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+        
+        .form-check {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .form-check-label {
+            font-size: 0.9em;
+            color: var(--text-muted);
+        }
+        
+        .remote-command-form input, .remote-command-form select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 12px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--primary-color);
+            color: var(--text-light);
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        
+        .quick-actions-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .quick-actions-list li button {
+            width: 100%;
+        }
+
+        /* تنسيق جدول الخلاصة اليومية */
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .summary-table td {
+            padding: 8px 0;
+            border-bottom: 1px dotted rgba(255, 255, 255, 0.05);
+            font-size: 0.9em;
+        }
+
+        .summary-table td:first-child {
+            color: var(--text-muted);
+        }
+        
+        .summary-table td:last-child {
+            color: var(--primary-color);
+            font-weight: bold;
+            text-align: left;
+        }
+
+        /* لتحديد الوحدات التي تتلقى أوامر التحكم */
+        .unit-controlled {
+            box-shadow: 0 0 10px 3px var(--secondary-color);
+            z-index: 100;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container" id="dashboard-container">
+        
+        <header>
+            <div class="header-title">
+                <i class="fas fa-satellite-dish"></i> C3/C2 - مركز عمليات مكافحة التهريب
+            </div>
+            <div class="status-indicators">
+                <span id="current-time-display"><i class="fas fa-clock"></i> 00:00:00</span>
+                <span><i class="fas fa-globe-americas" style="color: var(--alert-low);"></i> GEO-Fence: مفعل</span>
+                <span><i class="fas fa-signal" style="color: var(--alert-low);"></i> اتصال: مستقر</span>
+            </div>
+        </header>
+
+        <aside class="sidebar-right">
+            
+            <div class="sidebar-section">
+                <h4><i class="fas fa-chart-line"></i> لوحة الإحصائيات الحية</h4>
+                <div class="metric-card-container">
+                    <div class="metric-card" id="total-alerts-card">
+                        <span class="value" id="total-alerts-count">0</span>
+                        <span class="label">إجمالي البلاغات</span>
+                    </div>
+                    <div class="metric-card" id="active-alerts-card">
+                        <span class="value" id="active-alerts-count">0</span>
+                        <span class="label">بلاغات قيد المعالجة</span>
+                    </div>
+                    <div class="metric-card" id="avg-confidence-card">
+                        <span class="value" id="avg-confidence-score">0%</span>
+                        <span class="label">متوسط الثقة (AI)</span>
+                    </div>
+                    <div class="metric-card" id="top-threat-card">
+                        <span class="value" id="top-threat-display">N/A</span>
+                        <span class="label">أعلى تهديد مُسجل</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h4><i class="fas fa-calendar-day"></i> الخلاصة اليومية (Shift Summary)</h4>
+                <table class="summary-table">
+                    <tr>
+                        <td>أعلى عدد بلاغات (ساعة):</td>
+                        <td id="peak-hour-alerts">08:00 (5)</td>
+                    </tr>
+                    <tr>
+                        <td>معدل الاستجابة (متوسط):</td>
+                        <td id="avg-response-time">1.5 دقيقة</td>
+                    </tr>
+                    <tr>
+                        <td>إجراءات التحكم المرسلة:</td>
+                        <td id="control-commands-sent">0</td>
+                    </tr>
+                    <tr>
+                        <td>عدد الوحدات المنتشرة:</td>
+                        <td id="units-deployed-count">3</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="sidebar-section">
+                <h4><i class="fas fa-terminal"></i> سجل التدقيق (Audit Log)</h4>
+                <div class="log-container">
+                    <table>
+                        <tbody id="audit-log-tbody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </aside>
+
+        <aside class="sidebar-left">
+            
+            <div class="sidebar-section">
+                <h4><i class="fas fa-cogs"></i> أوامر التحكم عن بُعد (Live Command)</h4>
+                <div class="remote-command-form">
+                    <select id="remote-unit-select" class="form-control">
+                        <option value="">-- اختر الوحدة المستهدفة --</option>
+                        <option value="CX-Unit-001">CX-Unit-001 (دورية)</option>
+                        <option value="CX-Unit-005">CX-Unit-005 (نقطة ثابتة)</option>
+                        <option value="CX-Unit-008">CX-Unit-008 (جمرك)</option>
+                    </select>
+                    <input type="text" id="remote-command-input" placeholder="اكتب الأمر (مثال: تغيير المسار إلى 45-C)">
+                    <button class="action-button primary-btn" id="send-remote-command-btn">
+                        <i class="fas fa-paper-plane"></i> إرسال أمر فوري
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h4><i class="fas fa-keyboard"></i> إرسال بلاغ يدوي (Manual Alert)</h4>
+                <div class="remote-command-form">
+                    <select id="manual-risk-select" class="form-control">
+                        <option value="HIGH">خطورة عالية (HIGH)</option>
+                        <option value="MEDIUM">متوسطة (MEDIUM)</option>
+                        <option value="LOW">منخفضة (LOW)</option>
+                    </select>
+                    <input type="text" id="manual-threat-input" placeholder="وصف البلاغ (مثال: رؤية مباشرة لمركبة)">
+                    <button class="action-button danger-action full-width-btn" id="send-manual-alert-btn">
+                        <i class="fas fa-hand-point-right"></i> إرسال بلاغ يدوي فوري
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h4><i class="fas fa-route"></i> بروتوكولات الاستجابة الآلية (Automation)</h4>
+                <div class="automation-controls">
+                    <div class="form-check form-switch mb-2">
+                        <label class="form-check-label" for="auto-response-drugs">تفعيل بروتوكول مكافحة **المخدرات**</label>
+                        <input class="form-check-input" type="checkbox" id="auto-response-drugs" checked>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <label class="form-check-label" for="auto-response-weapons">تفعيل بروتوكول مكافحة **الأسلحة**</label>
+                        <input class="form-check-input" type="checkbox" id="auto-response-weapons">
+                    </div>
+                    
+                    <button class="action-button danger-action full-width-btn" id="emergency-override-btn">
+                        <i class="fas fa-exclamation-circle"></i> تفعيل الإلغاء الطارئ (Override)
+                    </button>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h4><i class="fas fa-bolt"></i> قائمة الإجراءات الفورية</h4>
+                <ul class="quick-actions-list">
+                    <li><button class="action-button medium-action" data-action="Geo-Lock"><i class="fas fa-lock"></i> عزل منطقة (Geo-Lock)</button></li>
+                    <li><button class="action-button primary-btn" data-action="Stealth-Mode"><i class="fas fa-user-secret"></i> تفعيل وضع التخفي</button></li>
+                    <li><button class="action-button danger-action" data-action="Terminate-All"><i class="fas fa-times-circle"></i> إنهاء جميع البروتوكولات</button></li>
+                    <li><button class="action-button primary-btn" data-action="Air-Support"><i class="fas fa-headset"></i> طلب دعم جوي</button></li>
+                </ul>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            
+            <div id="map"></div>
+            
+            <div class="alerts-panel">
+                <h4><i class="fas fa-bell"></i> جدول البلاغات الأخيرة</h4>
+                <div class="log-container">
+                    <table class="alerts-table">
+                        <thead>
+                            <tr>
+                                <th>الوقت</th>
+                                <th>الخطورة</th>
+                                <th>المركبة</th>
+                                <th>البلاغ</th>
+                                <th>إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alerts-table-tbody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="visual-context-panel">
+                <h4><i class="fas fa-eye"></i> السياق المرئي وتحليل المساعد (AI Copilot)</h4>
+                
+                <div class="video-feed-container">
+                    <div class="live-feed-viewer">
+                        <video id="live-video-feed" muted loop preload="auto" poster="uploaded:image_2d9557.jpg-c1a46a3f-9e06-486a-ae39-b72ccd48cbf4">
+                            <source id="video-source-element" src="https://cdn.videvo.net/videvo_files/video/free/2019-10/large_watermarked/190919_Boundary_04_prev.mp4" type="video/mp4">
+                        </video>
+                        
+                        <div class="feed-overlay">
+                            <span id="feed-unit-id">C-OPS/IDLE</span>
+                            <span id="feed-time">00:00:00</span>
+                        </div>
+
+                        <div class="video-controls-overlay">
+                            <button id="video-play-pause-btn" class="action-button">
+                                <i class="fas fa-play"></i> تشغيل
+                            </button>
+                            <button id="video-fullscreen-btn" class="action-button" style="margin-right: 10px;">
+                                <i class="fas fa-expand"></i> ملء الشاشة
+                            </button>
+                        </div>
+
+                    </div>
+                    
+                    <div class="ptz-controls">
+                        <div class="ptz-label"><i class="fas fa-video"></i> تحكم (PTZ)</div>
+                        <div class="ptz-buttons">
+                            <button class="action-button ptz-up" data-dir="up"><i class="fas fa-arrow-up"></i></button>
+                            <button class="action-button ptz-left" data-dir="left"><i class="fas fa-arrow-left"></i></button>
+                            <button class="action-button ptz-center" data-dir="reset"><i class="fas fa-bullseye"></i></button>
+                            <button class="action-button ptz-right" data-dir="right"><i class="fas fa-arrow-right"></i></button>
+                            <button class="action-button ptz-down" data-dir="down"><i class="fas fa-arrow-down"></i></button>
+                        </div>
+                        <div class="zoom-controls">
+                            <button class="action-button primary-btn" data-zoom="in"><i class="fas fa-plus"></i> تكبير (Zoom +)</button>
+                            <button class="action-button danger-action" data-zoom="out"><i class="fas fa-minus"></i> تصغير (Zoom -)</button>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="context-cards-grid">
+                    <div class="absher-data-card">
+                        <img id="absher-owner-img" class="absher-owner-img" src="data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23ccc'/%3E%3Cpath d='M30 70c0-11 10-20 20-20s20 9 20 20' fill='none' stroke='%23fff' stroke-width='4'/%3E%3C/svg%3E" alt="صورة المالك">
+                        
+                        <h5 id="absher-card-title"><i class="fas fa-id-card-alt"></i> بيانات استعلام أبشر الآلي (SA-ID)</h5>
+                        
+                        <div class="absher-details">
+                            <p id="absher-owner">المالك: لا يوجد استعلام حالي</p>
+                            <p id="absher-status">حالة المركبة: ---</p>
+                            <p id="absher-violations">المخالفات المسجلة: ---</p>
+                        </div>
+
+                    </div>
+                    
+                    <div class="pre-search-log">
+                        <h5><i class="fas fa-history"></i> سجل البحث المُسبق (Pre-Search)</h5>
+                        <ul id="pre-search-ul">
+                            <li>لا يوجد سجل بحث للمركبة الحالية.</li>
+                        </ul>
+                    </div>
+
+                    <div class="risk-meter-container">
+                        <div class="risk-meter-label">
+                            <span><i class="fas fa-shield-alt"></i> مؤشر الخطر الأمني للمالك</span>
+                            <span id="risk-score">0% (آمن)</span>
+                        </div>
+                        <div class="risk-bar">
+                            <div class="risk-level" id="risk-level" style="width: 0%; background-color: var(--alert-low);"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="copilot-panel copilot-analysis" id="copilot-analysis">
+                    <strong>تحليل AI:</strong> لا توجد بيانات حالية.
+                </div>
+                
+                <div class="copilot-panel copilot-action" id="copilot-action">
+                    **الإجراء الموصى به:** لا توجد توصيات حالية.
+                </div>
+                
+                <div class="task-list-container">
+                    <h5><i class="fas fa-tasks"></i> المهام العاجلة (Critical Path)</h5>
+                    <ul class="incident-task-list" id="incident-task-list">
+                        <li id="no-tasks-message">لا توجد مهام قيد التشغيل.</li>
+                    </ul>
+                </div>
+
+            </div>
+        </main>
+        
+    </div>
+
+    <div id="toast-container"></div>
+
+
+<script>
+// ==========================================================
+// 1. تعريف المتغيرات والثوابت الأساسية (JavaScript)
+// ==========================================================
+const alertsTableBody = document.getElementById('alerts-table-tbody');
+const totalAlertsCount = document.getElementById('total-alerts-count');
+const activeAlertsCount = document.getElementById('active-alerts-count');
+const avgConfidenceScore = document.getElementById('avg-confidence-score');
+const topThreatDisplay = document.getElementById('top-threat-display');
+const currentTimeDisplay = document.getElementById('current-time-display');
+const auditLogTbody = document.getElementById('audit-log-tbody');
+const copilotAnalysis = document.getElementById('copilot-analysis');
+const copilotAction = document.getElementById('copilot-action');
+const incidentTaskList = document.getElementById('incident-task-list');
+const sendRemoteCommandBtn = document.getElementById('send-remote-command-btn');
+const quickActionsList = document.querySelector('.quick-actions-list');
+const sendManualAlertBtn = document.getElementById('send-manual-alert-btn');
+
+// العناصر الجديدة للفيديو والتحكم
+const liveVideoFeed = document.getElementById('live-video-feed');
+const feedUnitID = document.getElementById('feed-unit-id');
+const feedTime = document.getElementById('feed-time');
+const ptzButtonsContainer = document.querySelector('.ptz-buttons');
+const zoomControls = document.querySelector('.zoom-controls');
+const videoPlayPauseBtn = document.getElementById('video-play-pause-btn');
+const videoFullscreenBtn = document.getElementById('video-fullscreen-btn');
+
+// **العنصر المُعَدَّل:** لتمثيل وسم <source> الجديد
+const videoSourceElement = document.getElementById('video-source-element');
+
+
+let totalAlerts = 0;
+let confidenceSum = 0;
+let map; 
+let alertMarkers = {}; 
+let unitMarkers = {}; 
+let activeAlertsLog = []; 
+let controlCommandsSent = 0; 
+let automationStatus = { drugs: true, weapons: false }; 
+
+const SIMULATION_INTERVAL_MS = 5000; 
+const UNIT_MOVE_INTERVAL_MS = 3000; 
+let currentZoomLevel = 1; // 1 = عادي، 2 = تكبير، 3 = تكبير إضافي
+
+let unitLocations = [
+    { id: 'CX-Unit-001', lat: 26.3121, lon: 43.9754, type: 'دورية', status: 'متحرك', marker: null }, 
+    { id: 'CX-Unit-005', lat: 26.2657, lon: 43.9589, type: 'نقطة ثابتة', status: 'ثابت', marker: null }, 
+    { id: 'CX-Unit-008', lat: 26.1250, lon: 44.0805, type: 'جمرك', status: 'متحرك', marker: null } 
+];
+
+// ******************************************************************************
+// ********* تم تحديث هذا القسم: تعيين رابط الفيديو التجريبي الجديد ************
+// ******************************************************************************
+// رابط تجريبي موثوق أكثر (مشهد حدود/طريق)
+const SIMULATION_VIDEO_SOURCE = "https://cdn.videvo.net/videvo_files/video/free/2019-10/large_watermarked/190919_Boundary_04_prev.mp4"; 
+
+// قاعدة بيانات وهمية لبيانات أبشر
+const ABSHER_DATA_DB = {
+    // الصورة الافتراضية للفيديو عند عدم وجود بلاغ نشط
+    default_poster: "uploaded:image_2d9557.jpg-c1a46a3f-9e06-486a-ae39-b72ccd48cbf4", 
+    'A324': { owner: 'علي عبدالله الحربي', status: 'سارية المفعول', violations: 2, stolen: false, riskScore: 35, preSearch: ['استعلام في 12:45', 'تفتيش يدوي في نقطة جمرك (11:00)'], img: "uploaded:image_2d94da.jpg-2061fe3d-d610-43fb-aef4-92d3b669a40c", videoSource: SIMULATION_VIDEO_SOURCE },
+    'C781': { owner: 'فهد إبراهيم القحطاني', status: 'منتهية (مخالفة)', violations: 6, stolen: false, riskScore: 65, preSearch: ['تنبيه تجاوز سرعة (14:10)'], img: "uploaded:image_2d9557.jpg-c1a46a3f-9e06-486a-ae39-b72ccd48cbf4", videoSource: SIMULATION_VIDEO_SOURCE },
+    'D990': { owner: 'أحمد محمد الزهراني', status: 'مطلوبة أمنياً', violations: 10, stolen: true, riskScore: 95, preSearch: ['مطلوبة للجهات الأمنية (08:00)', 'اشتباه تهريب (10:30)'], img: "uploaded:image_2d9557.jpg-c1a46a3f-9e06-486a-ae39-b72ccd48cbf4", videoSource: SIMULATION_VIDEO_SOURCE },
+    'F543': { owner: 'مؤسسة النقل السريع', status: 'سارية المفعول', violations: 0, stolen: false, riskScore: 10, preSearch: [] , img: "uploaded:image_2ca4ba.jpg-af638dea-f439-468f-bf44-5adae6ad7340", videoSource: SIMULATION_VIDEO_SOURCE }
+};
+// ******************************************************************************
+
+// ==========================================================
+// 2. وظائف الأدوات المساعدة
+// ==========================================================
+function updateTime() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('ar-SA', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit', 
+        hour12: false
+    });
+    currentTimeDisplay.textContent = timeStr;
+    feedTime.textContent = timeStr; // تحديث وقت البث
+}
+
+function addAuditing(action, unitID = 'N/A', user = 'المشغل', status = 'تم') {
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+    
+    const newRow = auditLogTbody.insertRow(0); 
+    
+    let timeCell = newRow.insertCell();
+    timeCell.textContent = timeStr;
+    timeCell.style.color = 'var(--text-muted)';
+    
+    let actionCell = newRow.insertCell();
+    actionCell.innerHTML = `**[<span style="color: ${status === '⚠️ طوارئ' ? 'var(--alert-high)' : status === 'آلي' ? 'var(--alert-low)' : 'var(--primary-color)'};">${status}</span>]** ${action} (${unitID}) بواسطة ${user}`;
+    actionCell.style.fontSize = '0.9em';
+    
+    if (auditLogTbody.rows.length > 10) {
+        auditLogTbody.deleteRow(auditLogTbody.rows.length - 1);
+    }
+}
+
+function showToast(message, type = 'low') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type} show`; 
+    
+    let icon = (type === 'high') ? '<i class="fas fa-exclamation-circle"></i>' :
+               (type === 'medium') ? '<i class="fas fa-exclamation-triangle"></i>' :
+               '<i class="fas fa-info-circle"></i>';
+
+    toast.innerHTML = `${icon} ${message}`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => container.removeChild(toast), 500);
+    }, 4000);
+}
+
+/**
+ * جلب بيانات أبشر المحاكاة 
+ * @param {string} plate - لوحة المركبة
+ * @returns {object} بيانات محاكاة أبشر
+ */
+function getAbsherData(plate) {
+    if (ABSHER_DATA_DB[plate]) {
+        return ABSHER_DATA_DB[plate];
+    }
+    
+    if (plate === 'MANUAL') {
+        return {
+            owner: 'غير متوفر (بلاغ يدوي)',
+            status: 'تحديد مباشر',
+            violations: 0,
+            stolen: false,
+            riskScore: 5,
+            preSearch: [],
+            img: ABSHER_DATA_DB['F543'].img,
+            videoSource: SIMULATION_VIDEO_SOURCE // استخدام رابط الفيديو الموحد
+        };
+    }
+    
+    // توليد بيانات عشوائية للمركبات غير الموجودة في الـ DB
+    const hash = plate.charCodeAt(0) + plate.charCodeAt(1);
+    const stolen = hash % 7 === 0;
+    const violations = hash % 10;
+    const owners = ['سالم جابر المري', 'شركة الشحن الوطنية', 'مواطن سعودي', 'مقيم عربي'];
+    const statuses = ['سارية المفعول', 'منتهية (يجب التجديد)', 'تحت المراجعة'];
+    
+    let riskScore = (stolen ? 80 : 0) + (violations * 5) + (hash % 15);
+    riskScore = Math.min(99, riskScore);
+
+    // اختيار صورة بناءً على مستوى الخطر
+    let selectedImg = ABSHER_DATA_DB['F543'].img; // Low Risk Default
+    if (riskScore >= 80) selectedImg = ABSHER_DATA_DB['D990'].img; // High Risk
+    else if (riskScore >= 50) selectedImg = ABSHER_DATA_DB['C781'].img; // Medium Risk
+
+    return { 
+        owner: owners[hash % 4], 
+        status: statuses[hash % 3], 
+        violations: violations, 
+        stolen: stolen,
+        riskScore: riskScore,
+        preSearch: violations > 3 ? [`تسجيل ${violations} مخالفة سابقة`, `استعلام في 09:00`] : [],
+        img: selectedImg,
+        videoSource: SIMULATION_VIDEO_SOURCE // استخدام رابط الفيديو الموحد
+    };
+}
+
+// ==========================================================
+// 3. وظائف الخريطة والموقع (Leaflet)
+// ==========================================================
+function initializeMap() {
+    const center = [26.3499, 43.9780];
+    
+    if (!map) {
+        map = L.map('map').setView(center, 12); 
+    }
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // إضافة المسار الحرج (كخط ثابت)
+    L.polyline([[26.35, 43.95], [26.30, 43.85], [26.25, 43.75]], {
+        color: 'var(--alert-high)',
+        weight: 5,
+        opacity: 0.7,
+        dashArray: '10, 5' 
+    }).addTo(map);
+
+    // وضع علامات الوحدات
+    unitLocations.forEach(unit => {
+        const marker = L.marker([unit.lat, unit.lon], {
+            icon: L.divIcon({
+                className: `custom-unit-marker`,
+                html: `<i id="unit-icon-${unit.id}" class="fas fa-truck-moving fa-2x" style="color: ${unit.status === 'متحرك' ? 'var(--alert-high)' : 'var(--primary-color)'};"></i>`,
+                iconSize: [30, 30]
+            })
+        }).addTo(map).bindPopup(`**الوحدة:** ${unit.id} | **النوع:** ${unit.type}`);
+        
+        unit.marker = marker;
+        unitMarkers[unit.id] = marker;
+    });
+    
+    // بدء محاكاة حركة الوحدات
+    startUnitTracking();
+}
+
+function startUnitTracking() {
+    unitLocations.forEach(unit => {
+        if (unit.status === 'متحرك') {
+            const moveUnit = () => {
+                const newLat = unit.lat + (Math.random() * 0.005 - 0.0025);
+                const newLon = unit.lon + (Math.random() * 0.005 - 0.0025);
+                
+                unit.lat = newLat;
+                unit.lon = newLon;
+
+                if (unit.marker) {
+                    unit.marker.setLatLng([newLat, newLon]);
+                    unit.marker.setPopupContent(`**الوحدة:** ${unit.id} | **النوع:** ${unit.type}<br>حالة: متحرك`);
+                }
+
+                setTimeout(moveUnit, UNIT_MOVE_INTERVAL_MS + Math.random() * 1000);
+            };
+            moveUnit();
+        }
+    });
+}
+
+
+function addAlertMarkerToMap(alert) {
+    if (!map) return;
+    
+    let iconClass;
+    
+    if (alert.risk === 'HIGH') {
+        iconClass = 'alert-marker-high';
+    } else if (alert.risk === 'MEDIUM') {
+        iconClass = 'alert-marker-medium';
+    } else {
+        iconClass = 'alert-marker-low';
+    }
+    
+    const icon = L.divIcon({
+        className: `alert-marker ${iconClass}`,
+        html: ``, 
+        iconSize: [20, 20] 
+    });
+
+    const marker = L.marker([alert.lat, alert.lon], { icon: icon })
+        .addTo(map)
+        .bindPopup(`**تنبيه:** ${alert.threat}<br>**المركبة:** ${alert.plate}<br>**الخطورة:** ${alert.risk}`);
+
+    marker.on('click', () => {
+        showVisualContext(alert);
+    });
+
+    alertMarkers[alert.id] = marker;
+}
+
+// ==========================================================
+// 4. وظائف المحاكاة وتوليد البيانات (التوليد المتكرر)
+// ==========================================================
+
+function generateRandomAlert(manualThreat, manualRisk) {
+    let risk, threat, category, confidence, plate;
+    
+    if (manualThreat && manualRisk) {
+        risk = manualRisk;
+        threat = manualThreat;
+        category = 'يدوي';
+        confidence = 100;
+        plate = 'MANUAL';
+    } else {
+        const isHighRisk = Math.random() < 0.5;
+        
+        const highThreats = [
+            { name: "تهريب أسلحة (كلاشينكوف)", category: 'الأسلحة', risk: 'HIGH', plate: 'D990' },
+            { name: "كمية كبيرة من الكبتاغون", category: 'المخدرات', risk: 'HIGH', plate: 'A324' },
+            { name: "مركبة مطلوبة في منطقة عزل", category: 'متنوعة', risk: 'HIGH', plate: 'C781' }
+        ];
+        
+        const lowMediumThreats = [
+            { name: "شحنة مشبوهة (نقطة حدود)", category: 'متنوعة', risk: 'MEDIUM', plate: 'F543' },
+            { name: "عبور غير مصرح به", category: 'متنوعة', risk: 'LOW', plate: null },
+            { name: "إشارة اختراق لجهاز استشعار", category: 'الأسلحة', risk: 'MEDIUM', plate: null }
+        ];
+        
+        const threats = isHighRisk ? highThreats : lowMediumThreats;
+        let randomThreat = threats[Math.floor(Math.random() * threats.length)];
+        
+        // لوحة مركبة عشوائية للمركبات التي لا تحمل لوحة محددة
+        plate = randomThreat.plate || Math.random().toString(36).substring(2, 6).toUpperCase();
+
+        risk = randomThreat.risk;
+        threat = randomThreat.name;
+        category = randomThreat.category;
+        confidence = isHighRisk ? (Math.floor(Math.random() * (99 - 90 + 1)) + 90) : (Math.floor(Math.random() * (85 - 75 + 1)) + 75);
+        
+        if (automationStatus.drugs && category === 'المخدرات' && risk === 'HIGH') {
+            threat += " (بروتوكول آلي)";
+        }
+        
+        // محاكاة تطابق خطير: إذا كانت اللوحة مطلوبة، ارفع مستوى الخطورة والثقة
+        if(plate === 'D990' || plate === 'C781') { 
+            risk = 'HIGH';
+            confidence = 98;
+        }
+
+    }
+    
+    const randomUnit = unitLocations[Math.floor(Math.random() * unitLocations.length)];
+    const time = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    
+    return {
+        id: Date.now() + Math.random(), 
+        time: time,
+        risk: risk,
+        plate: plate, 
+        threat: threat,
+        category: category,
+        confidence: confidence, 
+        unitID: (manualThreat && manualRisk) ? 'C-OPS' : randomUnit.id,
+        lat: (manualThreat && manualRisk) ? 26.3500 : 26.3500 + (Math.random() * 0.05 - 0.025), 
+        lon: (manualThreat && manualRisk) ? 43.9780 : 43.9780 + (Math.random() * 0.05 - 0.025)
+    };
+}
+
+function addAlertToDashboard(alert) {
+    totalAlerts++;
+    confidenceSum += alert.confidence;
+    
+    const newRow = alertsTableBody.insertRow(0); 
+    newRow.className = alert.risk === 'HIGH' ? 'ambient-high' : ''; 
+    newRow.onclick = () => showVisualContext(alert); 
+    newRow.dataset.alertId = alert.id; 
+    
+    newRow.innerHTML = `
+        <td>${alert.time}</td>
+        <td><span class="alert-type-tag ${alert.risk.toLowerCase()}">${alert.risk}</span></td>
+        <td class="license-plate">${alert.plate}</td>
+        <td>${alert.threat} (${alert.unitID})</td>
+        <td>
+            <button class="action-button primary-btn" onclick="handleAlertAction(event, '${alert.unitID}', '${alert.threat}', ${alert.id})">
+                <i class="fas fa-external-link-alt"></i> معالجة
+            </button>
+        </td>
+    `;
+    
+    addAlertMarkerToMap(alert);
+    updateStats(alert);
+    
+    if (alert.risk === 'HIGH') {
+         showToast(`🚨 تنبيه! بلاغ عالي الخطورة: ${alert.threat} (${alert.plate})`, 'high');
+         addAuditing(`بلاغ جديد عالي الخطورة: ${alert.threat} (${alert.plate})`, alert.unitID, 'النظام', '⚠️ طوارئ');
+         map.setView([alert.lat, alert.lon], 13);
+    } else {
+         addAuditing(`بلاغ جديد: ${alert.threat}`, alert.unitID, 'النظام', 'آلي');
+    }
+    
+    if (alertsTableBody.rows.length > 20) {
+        const lastRow = alertsTableBody.rows[alertsTableBody.rows.length - 1];
+        const oldAlertID = lastRow.dataset.alertId;
+        if (oldAlertID && alertMarkers[oldAlertID]) {
+             map.removeLayer(alertMarkers[oldAlertID]);
+             delete alertMarkers[oldAlertID];
+        }
+        alertsTableBody.deleteRow(alertsTableBody.rows.length - 1);
+    }
+}
+
+function updateStats(alert) {
+    totalAlertsCount.textContent = totalAlerts;
+    avgConfidenceScore.textContent = totalAlerts > 0 ? `${Math.round(confidenceSum / totalAlerts)}%` : '0%';
+    
+    if (alert.risk === 'HIGH' || alert.risk === 'MEDIUM') {
+        if (!activeAlertsLog.find(a => a.id === alert.id)) {
+            activeAlertsLog.push(alert);
+        }
+        activeAlertsCount.textContent = activeAlertsLog.length;
+        topThreatDisplay.textContent = alert.category; 
+    }
+}
+
+function startSimulation() {
+    const newAlert = generateRandomAlert();
+    addAlertToDashboard(newAlert); 
+    
+    if (newAlert.risk === 'HIGH') {
+        const isDrug = newAlert.category === 'المخدرات';
+        const newListItem = document.createElement('li');
+        newListItem.dataset.alertId = newAlert.id;
+        newListItem.innerHTML = `<i class="fas fa-exclamation-circle danger"></i> **تلقائي:** تفعيل بروتوكول ${isDrug ? '(DRUG-INTERCEPT)' : '(WEAPON-LOCK)'} للوحدة ${newAlert.unitID}.`;
+        
+        const noTasksMessage = document.getElementById('no-tasks-message');
+        if (noTasksMessage) {
+            incidentTaskList.removeChild(noTasksMessage); 
+        }
+        incidentTaskList.prepend(newListItem);
+    }
+    
+    setTimeout(startSimulation, SIMULATION_INTERVAL_MS);
+}
+
+
+// ==========================================================
+// 5. وظائف التفاعل (التحكم) - (محدثة بميزات أبشر والبث المباشر)
+// ==========================================================
+
+/**
+ * وظيفة تحديث شريط الخطر الأمني
+ * @param {number} score - النسبة المئوية للخطر (0-100)
+ */
+function updateRiskMeter(score) {
+    const riskLevel = document.getElementById('risk-level');
+    const riskScoreDisplay = document.getElementById('risk-score');
+    let color, label;
+
+    if (score >= 80) {
+        color = 'var(--alert-high)';
+        label = `(${score}% - خطر مرتفع جداً)`;
+    } else if (score >= 50) {
+        color = 'var(--alert-medium)';
+        label = `(${score}% - متوسط / اشتباه)`;
+    } else {
+        color = 'var(--alert-low)';
+        label = `(${score}% - آمن)`;
+    }
+
+    riskLevel.style.width = `${score}%`;
+    riskLevel.style.backgroundColor = color;
+    riskScoreDisplay.innerHTML = `<span style="color: ${color};">${label}</span>`;
+}
+
+
+/**
+ * وظيفة عرض السياق المرئي وبيانات أبشر (محدثة لنافذة الفيديو)
+ * @param {object} alert - كائن البلاغ.
+ */
+function showVisualContext(alert) {
+    const absherData = getAbsherData(alert.plate);
+    
+    // 1. تحديث نافذة البث المباشر (الفيديو)
+    // **الكود المُعَدَّل:** تحديث خاصية src لعنصر <source> مباشرة
+    videoSourceElement.src = absherData.videoSource;
+    liveVideoFeed.poster = absherData.img; 
+
+    // إعادة تحميل الفيديو ليتعرف على المصدر الجديد
+    liveVideoFeed.load(); 
+
+    // **التعديل الحاسم:** محاولة التشغيل القسري وضبط الأيقونة
+    liveVideoFeed.play().then(() => {
+        // نجح التشغيل التلقائي
+        videoPlayPauseBtn.innerHTML = '<i class="fas fa-pause"></i> إيقاف مؤقت';
+    }).catch(error => {
+        // فشل التشغيل التلقائي (عادة بسبب عدم تفاعل المستخدم)
+        videoPlayPauseBtn.innerHTML = '<i class="fas fa-play"></i> تشغيل';
+        showToast('⚠️ لم يتم تشغيل الفيديو تلقائياً. يرجى النقر على زر "تشغيل".', 'medium');
+    });
+    
+    feedUnitID.textContent = `${alert.unitID}/LIVE`;
+    
+    // إعادة تعيين وضع التكبير إلى الوضع العادي
+    liveVideoFeed.style.transform = 'scale(1)';
+    currentZoomLevel = 1; 
+
+    // 2. تحديث قسم بيانات أبشر (Owner Details)
+    document.getElementById('absher-owner-img').src = absherData.img;
+    document.getElementById('absher-owner-img').alt = absherData.owner;
+    document.getElementById('absher-owner').innerHTML = `المالك: <strong>${absherData.owner}</strong>`;
+    
+    let statusClass = absherData.stolen ? 'status-violation' : (absherData.status.includes('سارية') ? 'status-ok' : absherData.status.includes('منتهية') ? 'status-pending' : 'status-violation');
+    let violationsDisplay = absherData.violations > 0 ? `<span class="${statusClass}">${absherData.violations} مخالفة</span>` : `<span class="status-ok">0</span>`;
+    
+    if (absherData.stolen) {
+        document.getElementById('absher-status').innerHTML = `حالة المركبة: <strong style="color: var(--alert-high);">مطلوبة أمنياً!</strong>`;
+        violationsDisplay = `<span class="status-violation">99+ (مطلوبة)</span>`;
+        document.getElementById('absher-owner-img').style.borderColor = 'var(--alert-high)';
+        document.getElementById('absher-owner-img').style.boxShadow = '0 0 15px var(--alert-high)';
+    } else {
+        document.getElementById('absher-status').innerHTML = `حالة المركبة: <span class="${statusClass}">${absherData.status}</span>`;
+        document.getElementById('absher-owner-img').style.borderColor = 'var(--primary-color)';
+        document.getElementById('absher-owner-img').style.boxShadow = '0 0 10px var(--primary-color)';
+    }
+
+    document.getElementById('absher-violations').innerHTML = `المخالفات المسجلة: ${violationsDisplay}`;
+    
+    // 3. تحديث سجل البحث المسبق
+    const preSearchUl = document.getElementById('pre-search-ul');
+    preSearchUl.innerHTML = '';
+    if (absherData.preSearch && absherData.preSearch.length > 0) {
+        absherData.preSearch.forEach(item => {
+            const li = document.createElement('li');
+            li.innerHTML = `<i class="fas fa-search"></i> **${item}**`;
+            preSearchUl.appendChild(li);
+        });
+    } else {
+        preSearchUl.innerHTML = '<li>لا يوجد سجل بحث للمركبة الحالية.</li>';
+    }
+
+    // 4. تحديث مؤشر الخطر الأمني
+    updateRiskMeter(absherData.riskScore);
+    
+    // 5. تحديث تحليل AI بناءً على بيانات أبشر والخطر الأمني
+    let analysisText = `تم تحديد ${alert.threat} بثقة **${alert.confidence}%**. موقع البلاغ يتطابق مع **المسار الحرج للمهربين**.`;
+    let recommendedAction;
+    
+    if (absherData.stolen || absherData.riskScore >= 80) {
+        analysisText += `<br><strong style="color: var(--alert-high);">تطابق أمني عاجل:</strong> المركبة مطلوبة أمنياً أو الخطر مرتفع (${absherData.riskScore}%).`;
+        recommendedAction = `**الإجراء الموصى به:** تفعيل بروتوكول (INTERCEPT-HIGH). عزل جميع المداخل والمخارج حول المركبة فوراً واعتبار المالك خطر أمني.`;
+    } else if (absherData.riskScore >= 50) {
+         analysisText += `<br><strong style="color: var(--alert-medium);">تطابق تنبيه:</strong> المالك لديه سجل مخالفات/تنبهات عالية، الخطر متوسط.`;
+         recommendedAction = `**الإجراء الموصى به:** تفعيل بروتوكول (STANDBY-INTERCEPT). التحقق اليدوي عبر الوحدة ${alert.unitID} قبل الاشتباك.`;
+    } else {
+        const isDrug = alert.category === 'المخدرات';
+        recommendedAction = isDrug 
+            ? `**الإجراء الموصى به:** تفعيل بروتوكول (DRUG-INTERCEPT). عزل المسار المؤدي للوحدة ${alert.unitID}.`
+            : `**الإجراء الموصى به:** تفعيل بروتوكول (WEAPON-LOCK). استدعاء دعم جوي فوري ومتابعة الوحدة.`;
+    }
+        
+    copilotAnalysis.innerHTML = `<strong>تحليل AI:</strong> ${analysisText}`;
+    copilotAction.innerHTML = recommendedAction;
+
+    addAuditing(`عرض سياق بلاغ: ${alert.threat} والربط مع أبشر`, alert.unitID, 'المشغل', 'إطلاع');
+    
+    map.setView([alert.lat, alert.lon], 13);
+}
+
+// ----------------------------------------------------
+// منطق التحكم PTZ (محاكاة فقط)
+// ----------------------------------------------------
+
+ptzButtonsContainer.addEventListener('click', (e) => {
+    const button = e.target.closest('button');
+    if (!button) return;
+
+    const dir = button.dataset.dir;
+    let transformX = 0;
+    let transformY = 0;
+    const step = 10; // قيمة التحريك بالبكسل (محاكاة)
+    
+    // جلب وضع التحويل الحالي من عنصر الفيديو
+    const currentTransform = liveVideoFeed.style.transform.match(/translate\(([^,]+), ([^)]+)\)/);
+    
+    if (currentTransform) {
+        transformX = parseFloat(currentTransform[1].replace('px', ''));
+        transformY = parseFloat(currentTransform[2].replace('px', ''));
+    }
+
+    // تنفيذ الحركة
+    switch(dir) {
+        case 'up': transformY -= step * currentZoomLevel; break;
+        case 'down': transformY += step * currentZoomLevel; break;
+        case 'left': transformX -= step * currentZoomLevel; break;
+        case 'right': transformX += step * currentZoomLevel; break;
+        case 'reset': transformX = 0; transformY = 0; break;
+    }
+
+    liveVideoFeed.style.transform = `scale(${currentZoomLevel}) translate(${transformX}px, ${transformY}px)`;
+    showToast(`تم إرسال أمر ${dir} للكاميرا.`, 'low');
+    addAuditing(`تحريك الكاميرا (PTZ) - ${dir}`, feedUnitID.textContent.split('/')[0], 'المشغل', 'تحكم');
+});
+
+
+zoomControls.addEventListener('click', (e) => {
+    const button = e.target.closest('button');
+    if (!button) return;
+
+    const zoomDir = button.dataset.zoom;
+    
+    if (zoomDir === 'in' && currentZoomLevel < 3) {
+        currentZoomLevel++;
+    } else if (zoomDir === 'out' && currentZoomLevel > 1) {
+        currentZoomLevel--;
+    } else {
+        return;
+    }
+    
+    // تحديث التحويل ليتضمن التكبير
+    const currentTransform = liveVideoFeed.style.transform.match(/translate\(([^,]+), ([^)]+)\)/);
+    let transformX = currentTransform ? parseFloat(currentTransform[1].replace('px', '')) : 0;
+    let transformY = currentTransform ? parseFloat(currentTransform[2].replace('px', '')) : 0;
+    
+    liveVideoFeed.style.transform = `scale(${currentZoomLevel}) translate(${transformX}px, ${transformY}px)`;
+    showToast(`تم التكبير إلى المستوى ${currentZoomLevel}.`, 'medium');
+    addAuditing(`تكبير الكاميرا - المستوى ${currentZoomLevel}`, feedUnitID.textContent.split('/')[0], 'المشغل', 'تحكم');
+
+    // لتقليل التشوه البصري عند التصغير بعد التكبير والتحريك، أعد التركيز عند التصغير إلى المستوى 1.
+    if (currentZoomLevel === 1 && zoomDir === 'out') {
+        liveVideoFeed.style.transform = 'scale(1)';
+    }
+});
+
+// ----------------------------------------------------
+// منطق التحكم في تشغيل/إيقاف الفيديو مؤقتاً
+// ----------------------------------------------------
+
+videoPlayPauseBtn.addEventListener('click', () => {
+    if (liveVideoFeed.paused) {
+        liveVideoFeed.play().catch(error => {
+            showToast('⚠️ لا يمكن تشغيل الفيديو تلقائياً. يرجى النقر مرة أخرى.', 'medium');
+        });
+        videoPlayPauseBtn.innerHTML = '<i class="fas fa-pause"></i> إيقاف مؤقت';
+        addAuditing('تشغيل البث المباشر', feedUnitID.textContent.split('/')[0], 'المشغل', 'تحكم');
+    } else {
+        liveVideoFeed.pause();
+        videoPlayPauseBtn.innerHTML = '<i class="fas fa-play"></i> تشغيل';
+        addAuditing('إيقاف البث المباشر مؤقتاً', feedUnitID.textContent.split('/')[0], 'المشغل', 'تحكم');
+    }
+});
+
+// ----------------------------------------------------
+// منطق ملء الشاشة (Fullscreen)
+// ----------------------------------------------------
+videoFullscreenBtn.addEventListener('click', () => {
+    // محاولة تشغيل وضع ملء الشاشة على عنصر الفيديو
+    if (liveVideoFeed.requestFullscreen) {
+        liveVideoFeed.requestFullscreen();
+        addAuditing('تفعيل وضع ملء الشاشة للبث', feedUnitID.textContent.split('/')[0], 'المشغل', 'إطلاع');
+    } else if (liveVideoFeed.webkitRequestFullscreen) { /* Safari */
+        liveVideoFeed.webkitRequestFullscreen();
+    } else if (liveVideoFeed.msRequestFullscreen) { /* IE11 */
+        liveVideoFeed.msRequestFullscreen();
+    }
+    showToast('تم تفعيل وضع ملء الشاشة للبث الحي.', 'low');
+});
+
+// ----------------------------------------------------
+// نهاية منطق التحكم PTZ والفيديو
+// ----------------------------------------------------
+
+function handleAlertAction(event, unitID, threat, alertID) {
+    event.stopPropagation(); 
+    showToast(`تم إغلاق بلاغ ${threat} للوحدة ${unitID}.`, 'low');
+    addAuditing(`إغلاق بلاغ ${threat}`, unitID, 'المشغل', 'معالجة');
+    
+    activeAlertsLog = activeAlertsLog.filter(a => a.id !== alertID);
+    activeAlertsCount.textContent = activeAlertsLog.length;
+    
+    const marker = alertMarkers[alertID];
+    if (marker) {
+        map.removeLayer(marker);
+        delete alertMarkers[alertID];
+    }
+    
+    const rowToRemove = event.target.closest('tr');
+    if (rowToRemove) {
+         rowToRemove.remove();
+    }
+    
+    const taskItem = document.querySelector(`[data-alert-id="${alertID}"]`);
+    if (taskItem) {
+        taskItem.remove();
+    }
+    
+    if (activeAlertsLog.length === 0 && !document.getElementById('no-tasks-message')) {
+        incidentTaskList.innerHTML = '<li id="no-tasks-message">لا توجد مهام قيد التشغيل.</li>';
+    }
+}
+
+sendRemoteCommandBtn.addEventListener('click', () => {
+    const unitID = document.getElementById('remote-unit-select').value;
+    const command = document.getElementById('remote-command-input').value;
+
+    if (!unitID || !command) {
+        showToast('يرجى اختيار وحدة وكتابة الأمر أولاً.', 'medium');
+        return;
+    }
+
+    controlCommandsSent++;
+    document.getElementById('control-commands-sent').textContent = controlCommandsSent;
+    
+    showToast(`تم إرسال الأمر: "${command}" إلى الوحدة ${unitID}.`, 'primary');
+    addAuditing(`إرسال أمر: "${command}"`, unitID, 'المشغل', 'تحكم');
+
+    const unitIcon = document.getElementById(`unit-icon-${unitID}`);
+    if (unitIcon) {
+        const markerElement = unitIcon.closest('.custom-unit-marker');
+        if (markerElement) {
+             markerElement.classList.add('unit-controlled');
+             setTimeout(() => {
+                markerElement.classList.remove('unit-controlled');
+            }, 5000);
+        }
+    }
+});
+
+quickActionsList.addEventListener('click', (e) => {
+    if (e.target.tagName === 'BUTTON' || e.target.closest('BUTTON')) {
+        const btn = e.target.tagName === 'BUTTON' ? e.target : e.target.closest('BUTTON');
+        const action = btn.dataset.action;
+        
+        let message, status = 'تحكم';
+        
+        switch (action) {
+            case 'Geo-Lock':
+                message = `تم تفعيل عزل منطقة (Geo-Lock) بنجاح.`;
+                break;
+            case 'Stealth-Mode':
+                message = `تفعيل وضع التخفي لوحدات الدورية.`;
+                break;
+            case 'Terminate-All':
+                message = `🚨 تم إنهاء جميع البروتوكولات الطارئة!`;
+                status = '⚠️ طوارئ';
+                break;
+            case 'Air-Support':
+                message = `تم طلب دعم جوي. وقت الوصول المتوقع: 10 دقائق.`;
+                status = 'تحكم';
+                break;
+            default:
+                return;
+        }
+        
+        showToast(message, status === '⚠️ طوارئ' ? 'high' : 'medium');
+        addAuditing(message, 'N/A', 'المشغل', status);
+    }
+});
+
+document.getElementById('auto-response-drugs').addEventListener('change', (e) => {
+    automationStatus.drugs = e.target.checked;
+    const action = e.target.checked ? 'تفعيل' : 'إلغاء تفعيل';
+    showToast(`${action} بروتوكول مكافحة المخدرات.`, 'low');
+    addAuditing(`${action} بروتوكول مكافحة المخدرات`, 'N/A', 'المشغل', 'آلي');
+});
+
+document.getElementById('auto-response-weapons').addEventListener('change', (e) => {
+    automationStatus.weapons = e.target.checked;
+    const action = e.target.checked ? 'تفعيل' : 'إلغاء تفعيل';
+    showToast(`${action} بروتوكول مكافحة الأسلحة.`, 'low');
+    addAuditing(`${action} بروتوكول مكافحة الأسلحة`, 'N/A', 'المشغل', 'آلي');
+});
+
+document.getElementById('emergency-override-btn').addEventListener('click', () => {
+    document.getElementById('auto-response-drugs').checked = false;
+    document.getElementById('auto-response-weapons').checked = false;
+    automationStatus.drugs = false;
+    automationStatus.weapons = false;
+    showToast('🚨 تم تفعيل الإلغاء الطارئ وإيقاف جميع البروتوكولات!', 'high');
+    addAuditing('تفعيل الإلغاء الطارئ وإيقاف جميع البروتوكولات', 'N/A', 'المشغل', '⚠️ طوارئ');
+});
+
+sendManualAlertBtn.addEventListener('click', () => {
+    const risk = document.getElementById('manual-risk-select').value;
+    const threat = document.getElementById('manual-threat-input').value;
+
+    if (!threat) {
+        showToast('يرجى كتابة وصف البلاغ اليدوي أولاً.', 'medium');
+        return;
+    }
+    
+    const manualAlert = generateRandomAlert(threat, risk);
+    addAlertToDashboard(manualAlert);
+    
+    showToast(`تم إرسال بلاغ يدوي: ${threat} بخطورة ${risk}.`, risk.toLowerCase());
+    addAuditing(`إرسال بلاغ يدوي: ${threat}`, 'C-OPS', 'المشغل', 'تحكم');
+
+    document.getElementById('manual-threat-input').value = ''; 
+});
+
+
+// ==========================================================
+// 6. تهيئة النظام وبدء التشغيل
+// ==========================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    initializeMap();
+    updateTime();
+    setInterval(updateTime, 1000); 
+
+    document.getElementById('units-deployed-count').textContent = unitLocations.length;
+
+    addAuditing('بدء تشغيل النظام', 'N/A', 'النظام', 'تم');
+    
+    showToast('بدء محاكي البلاغات الحي (Live Simulator)...', 'low');
+    startSimulation(); 
+
+    // تهيئة حالة أبشر عند التحميل
+    document.getElementById('absher-owner-img').src = "data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23ccc'/%3E%3Cpath d='M30 70c0-11 10-20 20-20s20 9 20 20' fill='none' stroke='%23fff' stroke-width='4'/%3E%3C/svg%3E";
+    document.getElementById('absher-owner-img').alt = 'صورة افتراضية';
+    document.getElementById('absher-owner').innerHTML = `المالك: <strong>لا يوجد استعلام حالي</strong>`;
+    document.getElementById('absher-status').innerHTML = `حالة المركبة: <span>---</span>`;
+    document.getElementById('absher-violations').innerHTML = `المخالفات المسجلة: <span>---</span>`;
+    updateRiskMeter(0); // تعيين مؤشر الخطر إلى صفر عند البدء
+
+    // تعيين الصورة الافتراضية لغلاف الفيديو عند البدء
+    liveVideoFeed.poster = ABSHER_DATA_DB.default_poster;
+
+    // تشغيل الفيديو الافتراضي عند التحميل لتجنب الشاشة السوداء
+    liveVideoFeed.play().then(() => {
+        videoPlayPauseBtn.innerHTML = '<i class="fas fa-pause"></i> إيقاف مؤقت';
+    }).catch(error => {
+        console.warn("Video auto-play prevented. User needs interaction.");
+        videoPlayPauseBtn.innerHTML = '<i class="fas fa-play"></i> تشغيل';
+    });
+});
+
+</script>
+</body>
+</html>
